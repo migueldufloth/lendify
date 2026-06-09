@@ -102,4 +102,55 @@ Administrador & Gerencia equipamentos, usuários, permissões e logs de auditori
     \item Gerar relatório de uso dos equipamentos.
 \end{itemize}
 
+\section*{Arquitetura Inicial}
+
+O Lendify adotará uma arquitetura \textit{Client-Server} baseada em APIs REST, focada em separação de responsabilidades e segurança de acesso:
+
+\begin{itemize}
+    \item \textbf{Front-end (Client):} Desenvolvido em React. Consumirá a API de forma assíncrona, enviando os tokens de autenticação (JWT) no cabeçalho das requisições para atestar a identidade e perfil do usuário.
+    \item \textbf{Back-end (API):} Desenvolvido em Django utilizando o Django REST Framework. Atuará como a camada central de validação, aplicando as regras de negócio de reservas, protegendo as rotas por perfil e gravando os logs.
+    \item \textbf{Banco de Dados:} MySQL, acessado estritamente através do ORM do Django, evitando exposição direta a SQL Injections.
+\end{itemize}
+
+\section*{Matriz Inicial de Permissões}
+
+\begin{tabular}{@{}lccc@{}}
+\toprule
+\textbf{Funcionalidade} & \textbf{Solicitante} & \textbf{Operador} & \textbf{Administrador} \\
+\midrule
+Login no sistema & Sim & Sim & Sim \\
+Visualizar equipamentos & Sim & Sim & Sim \\
+Gerenciar equipamentos (CRUD) & Não & Não & Sim \\
+Solicitar reserva & Sim & Não & Não \\
+Visualizar próprias reservas & Sim & Sim & Sim \\
+Visualizar todas as reservas & Não & Sim & Sim \\
+Aprovar/Recusar reservas & Não & Sim & Sim \\
+Registrar retirada/devolução & Não & Sim & Sim \\
+Visualizar logs de auditoria & Não & Não & Sim \\
+Gerenciar usuários & Não & Não & Sim \\
+\bottomrule
+\end{tabular}
+
+\section*{Modelo Inicial de Dados (Entidades Principais)}
+
+\begin{itemize}
+    \item \textbf{User (Auth):} Armazena credenciais, hash de senha e perfil de acesso.
+    \item \textbf{Equipamento:} Representa o patrimônio. Contém nome, descrição, número de série e status (ativo/inativo).
+    \item \textbf{Reserva:} A entidade central do fluxo de empréstimos. Possui chaves estrangeiras para \textit{User} e \textit{Equipamento}. Armazena data/hora de início, data/hora de fim, justificativas e o \textbf{status} atual (Pendente, Aprovada, Recusada, Em Andamento, Devolvida, Cancelada).
+    \item \textbf{LogAuditoria:} Registra as ações de mudança de estado sensíveis no sistema, rastreando qual \textit{User} realizou a ação, sobre qual entidade, IP e timestamp.
+\end{itemize}
+
+\section*{Ativos e Dados Sensíveis}
+
+\begin{tabular}{@{}p{3cm}p{2.5cm}p{3cm}p{5.5cm}@{}}
+\toprule
+\textbf{Ativo} & \textbf{Classificação} & \textbf{Onde fica} & \textbf{Risco principal} \\
+\midrule
+Senhas dos usuários & Restrito & Banco de dados (hash) & Acesso indevido e personificação em caso de vazamento. \\
+Tokens JWT & Confidencial & Memória do Browser & Sequestro de sessão (\textit{Session Hijacking}). \\
+Histórico de Reservas & Interno & Banco de dados & Vazamento de quem está portando equipamentos valiosos. \\
+Logs de Auditoria & Interno & Banco de dados & Exclusão ou alteração de logs para apagar rastros de ações maliciosas. \\
+\bottomrule
+\end{tabular}
+
 \end{document}

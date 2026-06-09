@@ -255,3 +255,31 @@ Banco de Dados MySQL
 ## Status
 
 Em desenvolvimento.
+
+---
+
+## 11. Instruções de Instalação e Execução (Em construção)
+
+Como o sistema encontra-se no estágio inicial de desenvolvimento, as instruções a seguir servem para subir o ambiente de desenvolvimento.
+
+### Back-end (Django)
+```bash
+# Entre na pasta do backend
+cd backend
+
+# Crie e ative um ambiente virtual (Windows)
+python -m venv venv
+venv\Scripts\activate
+
+# Instale as dependências
+pip install -r requirements.txt
+
+# Faça as migrações iniciais (se houver)
+python manage.py migrate
+
+# Rode o servidor
+python manage.py runserver
+```
+
+### Front-end (React)
+Ainda não inicializado na raiz deste repositório. Em breve as instruções para `npm run dev` serão incluídas aqui assim que a branch de front-end for consolidada.
