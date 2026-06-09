@@ -1,0 +1,105 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[brazilian]{babel}
+\usepackage{geometry}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{hyperref}
+\usepackage{enumitem}
+
+\geometry{margin=2.5cm}
+
+\title{
+    \textbf{Segurança da Informação} \\
+    \large Avaliação N3, Entrega Inicial (02/06/2026) \\
+    \normalsize Curso de Engenharia de Software
+}
+\author{Grupo Lendify}
+\date{2 de junho de 2026}
+
+\begin{document}
+
+\maketitle
+
+\section*{Identificação do Projeto}
+
+\begin{tabular}{@{}ll@{}}
+\toprule
+\textbf{Código do Projeto} & P03-B, Reserva de Equipamentos \\
+\textbf{Nome do Sistema}   & Lendify \\
+\textbf{Professor}         & Edson Vaz Lopes \\
+\textbf{Data}              & 02 de junho de 2026 \\
+\bottomrule
+\end{tabular}
+
+\section*{Integrantes do Grupo}
+
+\begin{enumerate}
+    \item Miguel Angelo Dufloth Filho
+    \item Miguel Angel Balladares Huertas
+    \item Luis Fernando Pereira
+    \item Leonardo Lotério de Lima
+    \item Lucas Honorato dos Santos
+\end{enumerate}
+
+\section*{Repositório GitHub}
+
+Link: \url{https://github.com/migueldufloth/lendify} \\
+Acesso do professor: confirmado.
+
+\section*{Descrição Curta do Sistema}
+
+O \textbf{Lendify} é um sistema web para gerenciamento de empréstimo e reserva de
+equipamentos como projetores, notebooks e kits. Solicitantes realizam pedidos de
+reserva, operadores aprovam e acompanham devoluções, e administradores gerenciam
+o acervo, os usuários e os logs de auditoria.
+
+O nome é uma combinação de \textit{lend} (emprestar, em inglês) com o sufixo
+\textit{-fy}, amplamente utilizado em nomenclatura de produtos tecnológicos.
+
+\section*{Stack Pretendida}
+
+\begin{itemize}
+    \item \textbf{Front-end:} React
+    \item \textbf{Back-end:} Django (Python)
+    \item \textbf{Banco de dados:} MySQL
+\end{itemize}
+
+\section*{Perfis de Usuário Previstos}
+
+\begin{tabular}{@{}p{3.5cm}p{10cm}@{}}
+\toprule
+\textbf{Perfil} & \textbf{Responsabilidade} \\
+\midrule
+Solicitante   & Realiza pedidos de reserva e visualiza apenas suas próprias solicitações. \\
+Operador      & Analisa, aprova ou recusa reservas e registra devoluções. \\
+Administrador & Gerencia equipamentos, usuários, permissões e logs de auditoria. \\
+\bottomrule
+\end{tabular}
+
+\section*{Funcionalidades Mínimas Previstas}
+
+\subsection*{Solicitante}
+\begin{itemize}
+    \item Realizar reserva ou empréstimo de equipamento.
+    \item Visualizar suas próprias reservas.
+    \item Cancelar reserva com status pendente.
+\end{itemize}
+
+\subsection*{Operador}
+\begin{itemize}
+    \item Visualizar reservas sob sua responsabilidade.
+    \item Aprovar ou recusar solicitações.
+    \item Registrar devolução de equipamento.
+\end{itemize}
+
+\subsection*{Administrador}
+\begin{itemize}
+    \item Cadastrar, editar e remover equipamentos.
+    \item Gerenciar usuários e perfis de acesso.
+    \item Visualizar logs de auditoria.
+    \item Gerar relatório de uso dos equipamentos.
+\end{itemize}
+
+\end{document}
