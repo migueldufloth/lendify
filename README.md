@@ -68,7 +68,73 @@ A proposta é substituir controles manuais por uma aplicação digital organizad
 
 ---
 
-## 5. Perfis de Usuário
+## 5. Responsabilidades
+
+| Integrante | Módulo | Escopo |
+|---|---|---|
+| Miguel Angelo Dufloth Filho | Auth | Model User customizado, hash de senha, login/logout (JWT), middleware de permissão por perfil, endpoint de criação de usuário (admin only), seed de usuários |
+| Miguel Angel Balladares Huertas | Equipamentos | CRUD completo de equipamentos (criar, listar, editar, desativar), validação no servidor |
+| Luis Fernando Pereira | Logs de auditoria | Model de log, registro automático de ações relevantes, endpoint de listagem (admin only) |
+| Leonardo Lotério de Lima | Reservas | CRUD de reservas, fluxo de aprovação/recusa/devolução, regras de negócio por perfil |
+| Lucas Honorato dos Santos | Documentação | Relatório técnico de segurança, plano de resposta a incidentes, .env.example, README final |
+
+---
+
+## 6. Workflow
+
+### Branches
+
+```
+main               → código estável, integrado e revisado
+dev                → integração contínua entre módulos
+feature/<módulo>   → desenvolvimento individual
+```
+
+Exemplos: `feature/auth`, `feature/equipamentos`, `feature/reservas`, `feature/logs`, `feature/docs`
+
+### Fluxo padrão
+
+```bash
+# 1. Sempre partir de dev atualizado
+git checkout dev
+git pull origin dev
+
+# 2. Criar ou continuar sua branch
+git checkout -b feature/<seu-modulo>
+
+# 3. Desenvolver e commitar com mensagens claras
+git add .
+git commit -m "feat(auth): adiciona login com JWT"
+
+# 4. Antes de abrir PR, atualizar com dev
+git fetch origin
+git rebase origin/dev
+
+# 5. Abrir PR: feature/<modulo> → dev
+# Nunca abrir PR direto para main
+```
+
+### Convenção de commits
+
+```
+feat(<módulo>):      nova funcionalidade
+fix(<módulo>):       correção de bug
+refactor(<módulo>):  refatoração sem mudança de comportamento
+docs:                documentação
+chore:               configuração, dependências
+```
+
+### Regras
+
+- Nunca commitar `.env` — apenas `.env.example`
+- Nunca fazer push direto em `main` ou `dev`
+- Todo PR precisa de ao menos uma revisão antes do merge
+- Conflitos são resolvidos na branch `feature/*`, nunca em `dev`
+- Migrations do Django ficam na branch do módulo que as gerou; alinhar com o time antes de mergear para evitar conflito
+
+---
+
+## 7. Perfis de Usuário
 
 O sistema possui diferentes níveis de acesso, de acordo com a responsabilidade de cada usuário.
 
@@ -112,7 +178,7 @@ Funcionalidades previstas:
 
 ---
 
-## 6. Principais Funcionalidades
+## 8. Principais Funcionalidades
 
 ### Gestão de Equipamentos
 
@@ -158,7 +224,7 @@ Exemplos de registros:
 
 ---
 
-## 7. Tecnologias Utilizadas
+## 9. Tecnologias Utilizadas
 
 | Camada | Tecnologia |
 |---|---|
@@ -170,11 +236,11 @@ Exemplos de registros:
 
 ---
 
-## 8. Arquitetura do Sistema
+## 10. Arquitetura do Sistema
 
 O projeto é dividido em três camadas principais:
 
-```txt
+```
 Usuário
   ↓
 Front-end React
@@ -182,3 +248,10 @@ Front-end React
 API Back-end Django
   ↓
 Banco de Dados MySQL
+```
+
+---
+
+## Status
+
+Em desenvolvimento.
