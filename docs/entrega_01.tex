@@ -1,0 +1,156 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[brazilian]{babel}
+\usepackage{geometry}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{hyperref}
+\usepackage{enumitem}
+
+\geometry{margin=2.5cm}
+
+\title{
+    \textbf{Segurança da Informação} \\
+    \large Avaliação N3, Entrega Inicial (02/06/2026) \\
+    \normalsize Curso de Engenharia de Software
+}
+\author{Grupo Lendify}
+\date{2 de junho de 2026}
+
+\begin{document}
+
+\maketitle
+
+\section*{Identificação do Projeto}
+
+\begin{tabular}{@{}ll@{}}
+\toprule
+\textbf{Código do Projeto} & P03-B, Reserva de Equipamentos \\
+\textbf{Nome do Sistema}   & Lendify \\
+\textbf{Professor}         & Edson Vaz Lopes \\
+\textbf{Data}              & 02 de junho de 2026 \\
+\bottomrule
+\end{tabular}
+
+\section*{Integrantes do Grupo}
+
+\begin{enumerate}
+    \item Miguel Angelo Dufloth Filho
+    \item Miguel Angel Balladares Huertas
+    \item Luis Fernando Pereira
+    \item Leonardo Lotério de Lima
+    \item Lucas Honorato dos Santos
+\end{enumerate}
+
+\section*{Repositório GitHub}
+
+Link: \url{https://github.com/migueldufloth/lendify} \\
+Acesso do professor: confirmado.
+
+\section*{Descrição Curta do Sistema}
+
+O \textbf{Lendify} é um sistema web para gerenciamento de empréstimo e reserva de
+equipamentos como projetores, notebooks e kits. Solicitantes realizam pedidos de
+reserva, operadores aprovam e acompanham devoluções, e administradores gerenciam
+o acervo, os usuários e os logs de auditoria.
+
+O nome é uma combinação de \textit{lend} (emprestar, em inglês) com o sufixo
+\textit{-fy}, amplamente utilizado em nomenclatura de produtos tecnológicos.
+
+\section*{Stack Pretendida}
+
+\begin{itemize}
+    \item \textbf{Front-end:} React
+    \item \textbf{Back-end:} Django (Python)
+    \item \textbf{Banco de dados:} MySQL
+\end{itemize}
+
+\section*{Perfis de Usuário Previstos}
+
+\begin{tabular}{@{}p{3.5cm}p{10cm}@{}}
+\toprule
+\textbf{Perfil} & \textbf{Responsabilidade} \\
+\midrule
+Solicitante   & Realiza pedidos de reserva e visualiza apenas suas próprias solicitações. \\
+Operador      & Analisa, aprova ou recusa reservas e registra devoluções. \\
+Administrador & Gerencia equipamentos, usuários, permissões e logs de auditoria. \\
+\bottomrule
+\end{tabular}
+
+\section*{Funcionalidades Mínimas Previstas}
+
+\subsection*{Solicitante}
+\begin{itemize}
+    \item Realizar reserva ou empréstimo de equipamento.
+    \item Visualizar suas próprias reservas.
+    \item Cancelar reserva com status pendente.
+\end{itemize}
+
+\subsection*{Operador}
+\begin{itemize}
+    \item Visualizar reservas sob sua responsabilidade.
+    \item Aprovar ou recusar solicitações.
+    \item Registrar devolução de equipamento.
+\end{itemize}
+
+\subsection*{Administrador}
+\begin{itemize}
+    \item Cadastrar, editar e remover equipamentos.
+    \item Gerenciar usuários e perfis de acesso.
+    \item Visualizar logs de auditoria.
+    \item Gerar relatório de uso dos equipamentos.
+\end{itemize}
+
+\section*{Arquitetura Inicial}
+
+O Lendify adotará uma arquitetura \textit{Client-Server} baseada em APIs REST, focada em separação de responsabilidades e segurança de acesso:
+
+\begin{itemize}
+    \item \textbf{Front-end (Client):} Desenvolvido em React. Consumirá a API de forma assíncrona, enviando os tokens de autenticação (JWT) no cabeçalho das requisições para atestar a identidade e perfil do usuário.
+    \item \textbf{Back-end (API):} Desenvolvido em Django utilizando o Django REST Framework. Atuará como a camada central de validação, aplicando as regras de negócio de reservas, protegendo as rotas por perfil e gravando os logs.
+    \item \textbf{Banco de Dados:} MySQL, acessado estritamente através do ORM do Django, evitando exposição direta a SQL Injections.
+\end{itemize}
+
+\section*{Matriz Inicial de Permissões}
+
+\begin{tabular}{@{}lccc@{}}
+\toprule
+\textbf{Funcionalidade} & \textbf{Solicitante} & \textbf{Operador} & \textbf{Administrador} \\
+\midrule
+Login no sistema & Sim & Sim & Sim \\
+Visualizar equipamentos & Sim & Sim & Sim \\
+Gerenciar equipamentos (CRUD) & Não & Não & Sim \\
+Solicitar reserva & Sim & Não & Não \\
+Visualizar próprias reservas & Sim & Sim & Sim \\
+Visualizar todas as reservas & Não & Sim & Sim \\
+Aprovar/Recusar reservas & Não & Sim & Sim \\
+Registrar retirada/devolução & Não & Sim & Sim \\
+Visualizar logs de auditoria & Não & Não & Sim \\
+Gerenciar usuários & Não & Não & Sim \\
+\bottomrule
+\end{tabular}
+
+\section*{Modelo Inicial de Dados (Entidades Principais)}
+
+\begin{itemize}
+    \item \textbf{User (Auth):} Armazena credenciais, hash de senha e perfil de acesso.
+    \item \textbf{Equipamento:} Representa o patrimônio. Contém nome, descrição, número de série e status (ativo/inativo).
+    \item \textbf{Reserva:} A entidade central do fluxo de empréstimos. Possui chaves estrangeiras para \textit{User} e \textit{Equipamento}. Armazena data/hora de início, data/hora de fim, justificativas e o \textbf{status} atual (Pendente, Aprovada, Recusada, Em Andamento, Devolvida, Cancelada).
+    \item \textbf{LogAuditoria:} Registra as ações de mudança de estado sensíveis no sistema, rastreando qual \textit{User} realizou a ação, sobre qual entidade, IP e timestamp.
+\end{itemize}
+
+\section*{Ativos e Dados Sensíveis}
+
+\begin{tabular}{@{}p{3cm}p{2.5cm}p{3cm}p{5.5cm}@{}}
+\toprule
+\textbf{Ativo} & \textbf{Classificação} & \textbf{Onde fica} & \textbf{Risco principal} \\
+\midrule
+Senhas dos usuários & Restrito & Banco de dados (hash) & Acesso indevido e personificação em caso de vazamento. \\
+Tokens JWT & Confidencial & Memória do Browser & Sequestro de sessão (\textit{Session Hijacking}). \\
+Histórico de Reservas & Interno & Banco de dados & Vazamento de quem está portando equipamentos valiosos. \\
+Logs de Auditoria & Interno & Banco de dados & Exclusão ou alteração de logs para apagar rastros de ações maliciosas. \\
+\bottomrule
+\end{tabular}
+
+\end{document}

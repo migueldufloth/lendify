@@ -1,0 +1,416 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[brazilian]{babel}
+\usepackage{geometry}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{enumitem}
+\usepackage{hyperref}
+
+\geometry{margin=2.5cm}
+
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+\newcolumntype{T}[1]{>{\ttfamily\raggedright\arraybackslash}p{#1}}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=black,
+  urlcolor=black
+}
+
+\title{
+    \textbf{Lendify — Módulo de Equipamentos} \\
+    \large Especificação Técnica: Entidades, Regras e Permissões \\
+    \normalsize Segurança da Informação — Avaliação N3
+}
+\author{
+    Miguel Angel Balladares Huertas \\
+    \small Branch: \texttt{feature/equipamentos} \\
+    \small Repositório: \url{https://github.com/migueldufloth/lendify}
+}
+\date{Joinville, junho de 2026}
+
+\begin{document}
+
+\maketitle
+\tableofcontents
+\newpage
+
+% -----------------------------------------------------------
+\section{Introdução}
+
+Este documento descreve a especificação técnica do módulo de \textbf{Equipamentos} do
+sistema \textbf{Lendify}, desenvolvido como trabalho prático da disciplina de Segurança
+da Informação (Avaliação N3) do curso de Engenharia de Software da Católica SC.
+
+O módulo de Equipamentos é central no sistema: é o recurso que será reservado pelos
+solicitantes, gerenciado pelos administradores e monitorado pelos operadores durante o
+processo de empréstimo e devolução.
+
+Este documento cobre:
+\begin{itemize}
+  \item a entidade principal \texttt{Equipamento} e todos os seus campos;
+  \item os tipos de dados e constraints de cada campo;
+  \item as regras de negócio que governam o ciclo de vida de um equipamento;
+  \item as permissões de acesso por perfil de usuário;
+  \item os eventos que devem ser registrados em log de auditoria.
+\end{itemize}
+
+% -----------------------------------------------------------
+\section{Visão Geral do Módulo}
+
+O módulo de Equipamentos é responsável pelo cadastro e controle de todos os itens
+disponíveis para reserva no sistema, como projetores, notebooks e kits de laboratório.
+
+Um equipamento possui um ciclo de vida baseado em \textbf{status}, que reflete seu estado
+atual dentro do sistema: se está disponível para nova reserva, se já está reservado por
+alguém, ou se está fora de operação por manutenção.
+
+Apenas o perfil \textbf{Administrador} pode criar, editar ou remover equipamentos.
+Os perfis \textbf{Operador} e \textbf{Solicitante} podem apenas visualizar os equipamentos
+disponíveis.
+
+% -----------------------------------------------------------
+\section{Entidade: Equipamento}
+
+\subsection{Descrição}
+
+A entidade \texttt{Equipamento} representa um item físico cadastrado no sistema que pode
+ser reservado por um solicitante. Cada equipamento possui identificação única, descrição,
+categoria, número de série e um status que controla sua disponibilidade.
+
+\subsection{Campos, Tipos e Constraints}
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{T{2.8cm} L{3.2cm} L{2.8cm} L{4.6cm}}
+  \toprule
+  \textbf{Campo} & \textbf{Tipo} & \textbf{Obrigatório} & \textbf{Descrição / Constraints} \\
+  \midrule
+
+  id
+    & INTEGER (PK)
+    & Automático
+    & Chave primária. Gerado automaticamente pelo banco. Nunca editável. \\
+  \addlinespace
+
+  nome
+    & VARCHAR(150)
+    & Sim
+    & Nome do equipamento. Mín. 3 caracteres. Ex.: \textit{Projetor Epson X41+}. \\
+  \addlinespace
+
+  descricao
+    & TEXT
+    & Não
+    & Descrição detalhada do equipamento. Campo opcional. \\
+  \addlinespace
+
+  categoria
+    & VARCHAR(100)
+    & Sim
+    & Categoria do equipamento. Ex.: \textit{Projetor}, \textit{Notebook}, \textit{Kit}. \\
+  \addlinespace
+
+  numero\_serie
+    & VARCHAR(100)
+    & Sim
+    & Número de série único. Constraint \texttt{UNIQUE}. Identifica fisicamente o item. \\
+  \addlinespace
+
+  status
+    & ENUM
+    & Sim
+    & Situação atual do equipamento. Valores permitidos: \texttt{disponivel}, \texttt{reservado}, \texttt{manutencao}. Valor padrão: \texttt{disponivel}. \\
+  \addlinespace
+
+  criado\_por
+    & FK → User
+    & Automático
+    & Chave estrangeira para o usuário (Admin) que cadastrou o equipamento. Preenchido automaticamente no momento da criação via \texttt{request.user}. \\
+  \addlinespace
+
+  criado\_em
+    & DATETIME
+    & Automático
+    & Data e hora do cadastro. Preenchido automaticamente (\texttt{auto\_now\_add}). Nunca editável. \\
+
+  \bottomrule
+\end{tabular}
+\caption{Campos da entidade Equipamento}
+\end{table}
+
+\subsection{Representação no Modelo Django}
+
+O modelo será implementado no back-end Django conforme a estrutura abaixo.
+O campo \texttt{criado\_por} deve referenciar \texttt{settings.AUTH\_USER\_MODEL}
+para respeitar o modelo de usuário customizado definido no módulo de autenticação.
+
+\begin{verbatim}
+from django.conf import settings
+from django.db import models
+
+
+class Equipamento(models.Model):
+
+    STATUS_CHOICES = [
+        ('disponivel',  'Disponível'),
+        ('reservado',   'Reservado'),
+        ('manutencao',  'Em Manutenção'),
+    ]
+
+    nome          = models.CharField(max_length=150)
+    descricao     = models.TextField(blank=True, null=True)
+    categoria     = models.CharField(max_length=100)
+    numero_serie  = models.CharField(max_length=100, unique=True)
+    status        = models.CharField(
+                        max_length=20,
+                        choices=STATUS_CHOICES,
+                        default='disponivel'
+                    )
+    criado_por    = models.ForeignKey(
+                        settings.AUTH_USER_MODEL,
+                        on_delete=models.SET_NULL,
+                        null=True,
+                        related_name='equipamentos_criados'
+                    )
+    criado_em     = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'equipamento'
+        ordering = ['nome']
+
+    def __str__(self):
+        return f"{self.nome} [{self.numero_serie}]"
+\end{verbatim}
+
+% -----------------------------------------------------------
+\section{Ciclo de Vida e Status}
+
+O campo \texttt{status} controla a disponibilidade do equipamento para novas reservas.
+As transições de status válidas são:
+
+\begin{table}[h]
+  \centering
+  \begin{tabular}{lll}
+    \toprule
+    \textbf{Status Atual} & \textbf{Evento que causa a transição} & \textbf{Próximo Status} \\
+    \midrule
+    \texttt{disponivel}  & Reserva aprovada pelo Operador/Admin    & \texttt{reservado}    \\
+    \texttt{reservado}   & Devolução registrada pelo Operador/Admin & \texttt{disponivel} \\
+    \texttt{disponivel}  & Admin coloca em manutenção              & \texttt{manutencao}   \\
+    \texttt{manutencao}  & Admin retira de manutenção              & \texttt{disponivel}   \\
+    \texttt{reservado}   & Admin força encerramento                & \texttt{disponivel}   \\
+    \bottomrule
+  \end{tabular}
+  \caption{Transições válidas de status do Equipamento}
+\end{table}
+
+\textbf{Regra importante:} Um equipamento com status \texttt{reservado} ou
+\texttt{manutencao} \textbf{não pode} receber novas reservas. O sistema deve bloquear
+a criação de uma reserva se o equipamento não estiver com status \texttt{disponivel}.
+Essa validação deve ocorrer \textbf{no back-end} (serializer DRF), e não apenas no front-end.
+
+% -----------------------------------------------------------
+\section{Regras de Negócio}
+
+\subsection{RN-01 — Criação de Equipamento}
+\begin{itemize}
+  \item Apenas usuários com perfil \textbf{Administrador} podem criar equipamentos.
+  \item Os campos \texttt{nome}, \texttt{categoria} e \texttt{numero\_serie} são obrigatórios.
+  \item O \texttt{numero\_serie} deve ser único no banco de dados. Tentativa de cadastrar
+        número de série duplicado deve retornar erro de validação.
+  \item O campo \texttt{criado\_por} é preenchido automaticamente com o usuário autenticado
+        que realizou a requisição — nunca enviado pelo cliente.
+  \item O status inicial é sempre \texttt{disponivel}.
+\end{itemize}
+
+\subsection{RN-02 — Edição de Equipamento}
+\begin{itemize}
+  \item Apenas usuários com perfil \textbf{Administrador} podem editar equipamentos.
+  \item O campo \texttt{id} e o campo \texttt{criado\_em} são imutáveis após a criação.
+  \item O campo \texttt{status} pode ser editado diretamente apenas pelo Administrador
+        (ex.: colocar em manutenção). Operador e Solicitante não podem alterar o status
+        diretamente.
+  \item A alteração de status para \texttt{manutencao} não é permitida enquanto o
+        equipamento estiver com status \texttt{reservado} — deve haver devolução primeiro.
+\end{itemize}
+
+\subsection{RN-03 — Exclusão de Equipamento}
+\begin{itemize}
+  \item Apenas usuários com perfil \textbf{Administrador} podem excluir equipamentos.
+  \item Um equipamento com status \texttt{reservado} \textbf{não pode ser excluído}
+        enquanto houver reserva ativa vinculada a ele.
+  \item Recomenda-se exclusão lógica (soft delete) ou manutenção do histórico de reservas
+        mesmo após exclusão do equipamento.
+\end{itemize}
+
+\subsection{RN-04 — Visualização de Equipamentos}
+\begin{itemize}
+  \item Todos os perfis (Solicitante, Operador, Administrador) podem listar e visualizar
+        equipamentos.
+  \item O Solicitante visualiza apenas equipamentos com status \texttt{disponivel}
+        (filtro aplicado no back-end).
+  \item O Operador e o Administrador visualizam equipamentos em qualquer status.
+\end{itemize}
+
+\subsection{RN-05 — Disponibilidade para Reserva}
+\begin{itemize}
+  \item Somente equipamentos com status \texttt{disponivel} podem ser selecionados
+        em uma nova reserva.
+  \item Essa verificação é obrigatória no back-end no momento da criação da reserva.
+  \item Equipamentos em \texttt{manutencao} ou \texttt{reservado} devem retornar erro
+        ao tentar reservá-los.
+\end{itemize}
+
+\subsection{RN-06 — Número de Série}
+\begin{itemize}
+  \item O número de série identifica fisicamente o equipamento e deve ser único.
+  \item Não é permitido reutilizar o número de série de um equipamento excluído.
+  \item A validação de unicidade deve ser realizada no serializer (back-end),
+        não apenas no front-end.
+\end{itemize}
+
+% -----------------------------------------------------------
+\section{Matriz de Permissões do Módulo}
+
+\begin{center}
+\begin{tabular}{@{}lccc@{}}
+  \toprule
+  \textbf{Operação}            & \textbf{Solicitante} & \textbf{Operador} & \textbf{Admin} \\
+  \midrule
+  Listar equipamentos          & Sim (filtrado)        & Sim               & Sim \\
+  Ver detalhe de equipamento   & Sim                   & Sim               & Sim \\
+  Criar equipamento            & Não                   & Não               & Sim \\
+  Editar equipamento           & Não                   & Não               & Sim \\
+  Excluir equipamento          & Não                   & Não               & Sim \\
+  Alterar status (manutenção)  & Não                   & Não               & Sim \\
+  \bottomrule
+\end{tabular}
+\end{center}
+
+% -----------------------------------------------------------
+\section{Eventos de Log de Auditoria}
+
+Todas as ações relevantes sobre equipamentos devem gerar um registro na tabela
+\texttt{LogAuditoria}, conforme definido no modelo de dados do sistema.
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{L{3.4cm} L{3.1cm} L{6.5cm}}
+  \toprule
+  \textbf{Evento}                 & \textbf{Ação (campo \texttt{acao})} & \textbf{Descrição do registro} \\
+  \midrule
+
+  Cadastro de equipamento
+    & \texttt{CRIAR}
+    & Admin X cadastrou o equipamento Y (id, nome, número de série). \\
+  \addlinespace
+
+  Edição de equipamento
+    & \texttt{EDITAR}
+    & Admin X editou o equipamento Y. Campos alterados: [lista]. \\
+  \addlinespace
+
+  Exclusão de equipamento
+    & \texttt{EXCLUIR}
+    & Admin X excluiu o equipamento Y (id, nome, número de série). \\
+  \addlinespace
+
+  Alteração de status
+    & \texttt{EDITAR}
+    & Admin X alterou status do equipamento Y de \texttt{[anterior]} para \texttt{[novo]}. \\
+  \addlinespace
+
+  Tentativa de acesso negado
+    & \texttt{ACESSO\_NEGADO}
+    & Usuário X tentou operar o equipamento Y sem permissão. \\
+
+  \bottomrule
+\end{tabular}
+\caption{Eventos de log de auditoria do módulo de Equipamentos}
+\end{table}
+
+% -----------------------------------------------------------
+\section{Validações no Back-end (Serializer DRF)}
+
+As seguintes validações devem ser implementadas no serializer Django REST Framework
+do módulo de Equipamentos:
+
+\begin{itemize}
+  \item \textbf{nome}: mínimo de 3 caracteres, máximo de 150.
+  \item \textbf{categoria}: campo obrigatório, não pode ser vazio.
+  \item \textbf{numero\_serie}: obrigatório, único, máximo de 100 caracteres. Validar
+        unicidade via \texttt{UniqueValidator}.
+  \item \textbf{status}: deve ser um dos valores permitidos: \texttt{disponivel},
+        \texttt{reservado} ou \texttt{manutencao}.
+  \item \textbf{criado\_por}: campo somente leitura — nunca aceito na entrada da
+        requisição. Preenchido automaticamente via \texttt{perform\_create}.
+  \item \textbf{criado\_em}: campo somente leitura — nunca aceito na entrada da
+        requisição.
+\end{itemize}
+
+% -----------------------------------------------------------
+\section{Dados Fictícios para Demonstração}
+
+Para demonstração e testes do sistema, os seguintes equipamentos fictícios serão
+cadastrados via \textit{fixture} ou script de seed:
+
+\begin{center}
+\begin{tabular}{@{}llll@{}}
+  \toprule
+  \textbf{Nome}              & \textbf{Categoria} & \textbf{Nº de Série} & \textbf{Status} \\
+  \midrule
+  Projetor Epson X41+        & Projetor           & SN-PRJ-001           & disponivel \\
+  Notebook Dell Latitude     & Notebook           & SN-NTB-001           & disponivel \\
+  Notebook Dell Latitude     & Notebook           & SN-NTB-002           & reservado  \\
+  Kit Arduino Iniciante      & Kit                & SN-KIT-001           & disponivel \\
+  Projetor BenQ MH560        & Projetor           & SN-PRJ-002           & manutencao \\
+  Notebook Lenovo ThinkPad   & Notebook           & SN-NTB-003           & disponivel \\
+  Kit Robótica Intermediário & Kit                & SN-KIT-002           & disponivel \\
+  \bottomrule
+\end{tabular}
+\end{center}
+
+Todos os dados acima são \textbf{estritamente fictícios}, conforme exigido pelas
+regras da avaliação.
+
+% -----------------------------------------------------------
+\section{Considerações de Segurança}
+
+\begin{itemize}
+  \item \textbf{Autorização por perfil:} todas as rotas de criação, edição e exclusão
+        de equipamentos devem verificar se o usuário autenticado possui perfil
+        \texttt{administrador}. Caso contrário, retornar HTTP 403 e registrar o evento em log.
+
+  \item \textbf{Validação no back-end:} nenhuma validação pode depender exclusivamente
+        do front-end. O serializer deve rejeitar dados inválidos independentemente
+        da interface.
+
+  \item \textbf{Campo criado\_por:} nunca confiar no valor enviado pelo cliente.
+        O campo deve ser preenchido a partir do token JWT do usuário autenticado,
+        disponível em \texttt{request.user} via \texttt{JWTAuthentication}.
+
+  \item \textbf{Número de série:} dado sensível de rastreabilidade do patrimônio.
+        Não deve ser exposto em endpoints públicos ou sem autenticação.
+
+  \item \textbf{Log de acesso negado:} qualquer tentativa de operação não autorizada
+        sobre equipamentos deve gerar registro no log de auditoria, incluindo IP
+        e timestamp.
+\end{itemize}
+
+% -----------------------------------------------------------
+\section{Referências}
+
+\begin{itemize}
+  \item Repositório do projeto: \url{https://github.com/migueldufloth/lendify}
+  \item Documento da Avaliação N3 — Prof. Edson Vaz Lopes — Católica SC, junho de 2026.
+  \item Django REST Framework — Serializers: \url{https://www.django-rest-framework.org/api-guide/serializers/}
+  \item Django Models: \url{https://docs.djangoproject.com/en/stable/topics/db/models/}
+\end{itemize}
+
+\end{document}
